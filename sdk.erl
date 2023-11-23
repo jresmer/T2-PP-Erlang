@@ -1,8 +1,8 @@
 -module(sdk).
 
--export([solve/0, test/0, revision_step/3, get_possibilities/2, keep_diff_than/2, keep_greater_than/2, possibilities/1, board/0, update_possibilities/3, positions/0, arc_consistency/1, all_pairs/0, pair_w_neighbors/2, get_contraint/3, constraints/0, invalid/1, done/1, extract_solution/1, find_choice/2, grid/1]).
+-export([solve/0]).
 
--import(lists, [nth/2, usort/1, map/2, seq/2, nth/1, merge/2]).
+-import(lists, [nth/2, usort/1, map/2, seq/2, nth/1, merge/2, nthtail/2, sublist/2, any/2, all/2, foldl/3, map/2]).
 
 board() -> % tabuleiro a ser resulvido
 
@@ -11,7 +11,7 @@ board() -> % tabuleiro a ser resulvido
   , [0, 0, 0, 0, 0, 0, 0, 0, 0]
   , [0, 0, 0, 0, 0, 0, 0, 0, 0]
   , [0, 0, 0, 0, 0, 0, 0, 0, 0]
-  , [8, 0, 0, 0, 3, 0, 0, 0, 0]
+  , [8, 0, 0, 0, 3, 0, 0, 0, 0] 
   , [0, 0, 0, 0, 0, 0, 0, 0, 0]
   , [0, 0, 0, 0, 0, 0, 0, 0, 0]
   , [0, 0, 3, 0, 0, 6, 0, 0, 0]
@@ -35,11 +35,7 @@ constraints() -> % restrições do tabuleiro
     , {63,64,0}, {64,65,1}, {66,67,1}, {67,68,0}, {69,70,1}, {70,71,0}
     , {63,72,1}, {64,73,1}, {65,74,0}, {66,75,0}, {67,76,1}, {68,77,1}, {69,78,1}, {70,79,0}, {71,80,0}
     , {72,73,0}, {73,74,0}, {75,76,1}, {76,77,0}, {78,79,0}, {79,80,1}
-    ].
-
-test() ->
-
-    possibilities(board()).
+    ].  
 
 positions() -> % gera uma lista com todas as posições do tabuleiro
 
@@ -63,15 +59,15 @@ get_possibilities({I, J}, T) -> % recupera a lista de possibilidades de uma posi
 
 update_possibilities({I, J}, NewList, PossibilitiesMatrix) -> % atualisa as possibilidades de uma célular
 
-    lists:sublist(PossibilitiesMatrix, I - 1) ++
-    [update_row(lists:nth(I, PossibilitiesMatrix), J, NewList)] ++
-    lists:nthtail(I, PossibilitiesMatrix).
+    sublist(PossibilitiesMatrix, I - 1) ++
+    [update_row(nth(I, PossibilitiesMatrix), J, NewList)] ++
+    nthtail(I, PossibilitiesMatrix).
 
 update_row(Row, RowIndex, NewValues) -> % helper de update_possibilities
 
-    lists:sublist(Row, RowIndex - 1) ++
+    sublist(Row, RowIndex - 1) ++
     [NewValues] ++
-    lists:nthtail(RowIndex, Row).
+    nthtail(RowIndex, Row).
 
 keep_lower_than([Xh | Xs], N) -> % retira possibilidades caso o elemnto seja maior que n
 
@@ -143,7 +139,7 @@ neighbors({I, J}) -> % lista todas as posições que se relacionam com  posiçã
     Col = [{X, J} || X <- seq(0,8)] -- [{I, J}],
     N = Grid ++ Row ++ Col,
 
-    lists:usort(N).
+    usort(N).
 
 pair_up(_, []) -> [];
 pair_up(P, [H | T]) -> % retorna uma lista de pares P com cada elemento da lista recebida por parâmetro
@@ -221,20 +217,20 @@ arc_consistency_h([{P1, P2} | Xs], Ptable) ->
     end.
 
 invalid(P) -> % confere a validade da tabela de possibilidades
-    lists:any(fun(Row) -> lists:any(fun(Cell) -> Cell == [] end, Row) end, P).
+    any(fun(Row) -> any(fun(Cell) -> Cell == [] end, Row) end, P).
 
 done(P) -> % verifica se uma solução está pronta a partir da sua tabela de possibilidades
-    lists:all(fun(Cell) -> is_list(Cell) andalso length_one_recursive(Cell) end, P).
+    all(fun(Cell) -> is_list(Cell) andalso length_one_recursive(Cell) end, P).
 
 length_one_recursive([]) -> true; % helper de done
 length_one_recursive([H | T]) when is_list(H) -> length(H) == 1 andalso length_one_recursive(T);
 length_one_recursive(_) -> false.
 
 extract_solution(Matrix) -> % transforma uma tabela de possibilidades de um tabuleiro pronto em uma matriz que representa o tabuleiro
-    lists:map(fun(Row) -> flatten_row(Row) end, Matrix).
+    map(fun(Row) -> flatten_row(Row) end, Matrix).
 
 flatten_row(Row) -> % helper de extract_solution
-    lists:foldl(fun(Cell, Acc) -> Acc ++ Cell end, [], Row).
+    foldl(fun(Cell, Acc) -> Acc ++ Cell end, [], Row).
 
 find_choice(PositionList, Matrix) -> % acha a primeira posição não decidida da matrix
     {I, J} = find_choice(PositionList, Matrix, []),
@@ -260,7 +256,7 @@ is_valid_position(_, _) ->
     false.
 
 length_of_element({I, J}, Matrix) -> % helper de find_choice
-    length(lists:nth(J, lists:nth(I, Matrix))).
+    length(nth(J, nth(I, Matrix))).
 
 try_choices(_, [], _) -> nothing; % helper de backtracking | realiza as escolhas
 try_choices(Position, [Possibility | Tail], P) ->
